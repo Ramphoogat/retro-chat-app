@@ -82,6 +82,8 @@ export interface ClientOptions {
 /**
  * Import the endpoint handlers to derive the types for the client.
  */
+import { createSession as api_chat_create_session_createSession } from "~backend/chat/create_session";
+import { joinSession as api_chat_join_session_joinSession } from "~backend/chat/join_session";
 import { chatStream as api_chat_stream_chatStream } from "~backend/chat/stream";
 
 export namespace chat {
@@ -92,13 +94,39 @@ export namespace chat {
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
             this.chatStream = this.chatStream.bind(this)
+            this.createSession = this.createSession.bind(this)
+            this.joinSession = this.joinSession.bind(this)
         }
 
         /**
-         * Real-time chat streaming endpoint that handles bidirectional communication.
+         * Real-time chat streaming endpoint that handles bidirectional communication within sessions.
          */
-        public async chatStream(): Promise<StreamInOut<StreamRequest<typeof api_chat_stream_chatStream>, StreamResponse<typeof api_chat_stream_chatStream>>> {
-            return await this.baseClient.createStreamInOut(`/chat/stream`)
+        public async chatStream(params: RequestType<typeof api_chat_stream_chatStream>): Promise<StreamInOut<StreamRequest<typeof api_chat_stream_chatStream>, StreamResponse<typeof api_chat_stream_chatStream>>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                sessionId: params.sessionId,
+                username:  params.username,
+            })
+
+            return await this.baseClient.createStreamInOut(`/chat/stream`, {query})
+        }
+
+        /**
+         * Creates a new chat session with a unique ID and password.
+         */
+        public async createSession(params: RequestType<typeof api_chat_create_session_createSession>): Promise<ResponseType<typeof api_chat_create_session_createSession>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/chat/sessions`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_chat_create_session_createSession>
+        }
+
+        /**
+         * Joins an existing chat session with the correct password.
+         */
+        public async joinSession(params: RequestType<typeof api_chat_join_session_joinSession>): Promise<ResponseType<typeof api_chat_join_session_joinSession>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/chat/sessions/join`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_chat_join_session_joinSession>
         }
     }
 }

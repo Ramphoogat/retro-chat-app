@@ -1,0 +1,7 @@
+CREATE TABLE chat_sessions (
+  id TEXT PRIMARY KEY,
+  host_name TEXT NOT NULL,
+  password TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE
+);

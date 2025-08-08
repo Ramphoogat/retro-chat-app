@@ -1,6 +1,7 @@
 import { api, StreamInOut } from "encore.dev/api";
 
-const connectedStreams: Set<StreamInOut<ChatMessage, ChatMessage>> = new Set();
+// Map of session ID to connected streams
+const sessionStreams: Map<string, Set<StreamInOut<ChatMessage, ChatMessage>>> = new Map();
 
 export interface ChatMessage {
   id: string;
@@ -8,28 +9,47 @@ export interface ChatMessage {
   message: string;
   timestamp: Date;
   color: string;
+  sessionId: string;
 }
 
-// Real-time chat streaming endpoint that handles bidirectional communication.
-export const chatStream = api.streamInOut<ChatMessage, ChatMessage>(
+export interface ChatHandshake {
+  sessionId: string;
+  username: string;
+}
+
+// Real-time chat streaming endpoint that handles bidirectional communication within sessions.
+export const chatStream = api.streamInOut<ChatHandshake, ChatMessage, ChatMessage>(
   { expose: true, path: "/chat/stream" },
-  async (stream) => {
-    connectedStreams.add(stream);
+  async (handshake, stream) => {
+    const { sessionId } = handshake;
+    
+    // Get or create the set of streams for this session
+    if (!sessionStreams.has(sessionId)) {
+      sessionStreams.set(sessionId, new Set());
+    }
+    
+    const streams = sessionStreams.get(sessionId)!;
+    streams.add(stream);
 
     try {
       for await (const chatMessage of stream) {
-        // Broadcast the message to all connected clients
-        for (const cs of connectedStreams) {
+        // Only broadcast to streams in the same session
+        for (const cs of streams) {
           try {
             await cs.send(chatMessage);
           } catch (err) {
-            // If there's an error sending the message, remove the client from the map
-            connectedStreams.delete(cs);
+            // If there's an error sending the message, remove the client from the session
+            streams.delete(cs);
           }
         }
       }
     } finally {
-      connectedStreams.delete(stream);
+      streams.delete(stream);
+      
+      // Clean up empty session sets
+      if (streams.size === 0) {
+        sessionStreams.delete(sessionId);
+      }
     }
   }
 );

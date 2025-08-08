@@ -1,24 +1,33 @@
 import { useState, useEffect, useRef } from "react";
 import { ChatWindow } from "./components/ChatWindow";
 import { MessageInput } from "./components/MessageInput";
-import { UserSetup } from "./components/UserSetup";
+import { SessionSetup } from "./components/SessionSetup";
 import { Terminal } from "./components/Terminal";
 import backend from "~backend/client";
 import type { ChatMessage } from "~backend/chat/stream";
 
+interface SessionInfo {
+  sessionId: string;
+  hostName: string;
+  username: string;
+  userColor: string;
+}
+
 export default function App() {
-  const [username, setUsername] = useState<string>("");
-  const [userColor, setUserColor] = useState<string>("#00ff00");
+  const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const streamRef = useRef<any>(null);
 
-  const connectToChat = async () => {
-    if (!username.trim()) return;
-
+  const connectToChat = async (session: SessionInfo) => {
     try {
-      const stream = await backend.chat.chatStream();
+      const stream = await backend.chat.chatStream({
+        sessionId: session.sessionId,
+        username: session.username,
+      });
+      
       streamRef.current = stream;
+      setSessionInfo(session);
       setIsConnected(true);
 
       // Listen for incoming messages
@@ -34,18 +43,20 @@ export default function App() {
       })();
     } catch (error) {
       console.error("Failed to connect to chat:", error);
+      throw error;
     }
   };
 
   const sendMessage = async (messageText: string) => {
-    if (!streamRef.current || !messageText.trim()) return;
+    if (!streamRef.current || !messageText.trim() || !sessionInfo) return;
 
     const message: ChatMessage = {
       id: crypto.randomUUID(),
-      username,
+      username: sessionInfo.username,
       message: messageText,
       timestamp: new Date(),
-      color: userColor,
+      color: sessionInfo.userColor,
+      sessionId: sessionInfo.sessionId,
     };
 
     try {
@@ -62,6 +73,7 @@ export default function App() {
     }
     setIsConnected(false);
     setMessages([]);
+    setSessionInfo(null);
   };
 
   useEffect(() => {
@@ -76,13 +88,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-black text-green-400 font-mono">
         <Terminal />
-        <UserSetup
-          username={username}
-          setUsername={setUsername}
-          userColor={userColor}
-          setUserColor={setUserColor}
-          onConnect={connectToChat}
-        />
+        <SessionSetup onConnect={connectToChat} />
       </div>
     );
   }
@@ -97,7 +103,13 @@ export default function App() {
           </h1>
           <div className="flex items-center gap-4">
             <span className="text-sm">
-              USER: <span style={{ color: userColor }}>{username}</span>
+              SESSION: <span className="text-cyan-400">{sessionInfo?.sessionId}</span>
+            </span>
+            <span className="text-sm">
+              HOST: <span className="text-yellow-400">{sessionInfo?.hostName}</span>
+            </span>
+            <span className="text-sm">
+              USER: <span style={{ color: sessionInfo?.userColor }}>{sessionInfo?.username}</span>
             </span>
             <button
               onClick={disconnect}
@@ -107,7 +119,7 @@ export default function App() {
             </button>
           </div>
         </div>
-        <ChatWindow messages={messages} currentUser={username} />
+        <ChatWindow messages={messages} currentUser={sessionInfo?.username || ""} />
         <MessageInput onSendMessage={sendMessage} />
       </div>
     </div>
