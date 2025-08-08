@@ -1,4 +1,4 @@
-import { api, APIError, Header } from "encore.dev/api";
+import { api, APIError } from "encore.dev/api";
 import { chatDB } from "./db";
 
 export interface CreateSessionRequest {
@@ -32,9 +32,12 @@ export const createSession = api<CreateSessionRequest, CreateSessionResponse>(
       VALUES (${sessionId}, ${req.hostName}, ${req.password}, ${publicLinkId})
     `;
 
-    // Generate the public link URL - use a more reliable method to get the host
+    // Generate the public link URL
+    // When deployed, this will automatically use your deployed domain
+    // For Encore Cloud, it will be something like: https://your-app-name-1234.encr.app
+    // For other platforms, update this to your actual domain
     const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://your-domain.com' // Replace with your actual domain
+      ? process.env.FRONTEND_URL || 'https://your-deployed-domain.com' // Replace with your actual deployed URL
       : 'http://localhost:3000';
     
     const publicLink = `${baseUrl}/join/${publicLinkId}`;
