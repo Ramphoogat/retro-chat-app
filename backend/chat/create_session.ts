@@ -1,4 +1,4 @@
-import { api, APIError } from "encore.dev/api";
+import { api, APIError, Header } from "encore.dev/api";
 import { chatDB } from "./db";
 
 export interface CreateSessionRequest {
@@ -32,8 +32,12 @@ export const createSession = api<CreateSessionRequest, CreateSessionResponse>(
       VALUES (${sessionId}, ${req.hostName}, ${req.password}, ${publicLinkId})
     `;
 
-    // Generate the public link URL
-    const publicLink = `${process.env.NODE_ENV === 'production' ? 'https' : 'http'}://${req.headers?.host || 'localhost:3000'}/join/${publicLinkId}`;
+    // Generate the public link URL - use a more reliable method to get the host
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://your-domain.com' // Replace with your actual domain
+      : 'http://localhost:3000';
+    
+    const publicLink = `${baseUrl}/join/${publicLinkId}`;
 
     return {
       sessionId,

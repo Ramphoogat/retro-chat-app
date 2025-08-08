@@ -54,7 +54,28 @@ export function SessionSetup({ onConnect }: SessionSetupProps) {
 
   const copyToClipboard = async (text: string, field: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      // Try the modern Clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (!successful) {
+          throw new Error('Copy command failed');
+        }
+      }
+      
       setCopiedField(field);
       setTimeout(() => setCopiedField(null), 2000);
       toast({
@@ -63,11 +84,23 @@ export function SessionSetup({ onConnect }: SessionSetupProps) {
       });
     } catch (error) {
       console.error("Failed to copy:", error);
+      
+      // Show a fallback message with the text to copy manually
       toast({
-        title: "Copy failed",
-        description: "Failed to copy to clipboard",
+        title: "Copy manually",
+        description: `Please copy this manually: ${text}`,
         variant: "destructive",
       });
+      
+      // Select the text in the UI for manual copying
+      const element = document.querySelector(`[data-copy-text="${field}"]`) as HTMLElement;
+      if (element) {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
     }
   };
 
@@ -251,7 +284,12 @@ export function SessionSetup({ onConnect }: SessionSetupProps) {
                     <div className="flex items-center justify-between">
                       <span className="text-green-400 text-sm">SESSION ID:</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-cyan-400 font-mono">{createdSession.sessionId}</span>
+                        <span 
+                          className="text-cyan-400 font-mono select-all cursor-pointer"
+                          data-copy-text="Session ID"
+                        >
+                          {createdSession.sessionId}
+                        </span>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -266,7 +304,12 @@ export function SessionSetup({ onConnect }: SessionSetupProps) {
                     <div className="flex items-center justify-between">
                       <span className="text-green-400 text-sm">PASSWORD:</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-cyan-400 font-mono">{hostPassword}</span>
+                        <span 
+                          className="text-cyan-400 font-mono select-all cursor-pointer"
+                          data-copy-text="Password"
+                        >
+                          {hostPassword}
+                        </span>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -300,7 +343,10 @@ export function SessionSetup({ onConnect }: SessionSetupProps) {
                           </Button>
                         </div>
                       </div>
-                      <div className="text-xs text-yellow-400 font-mono break-all bg-gray-800 p-2 border border-yellow-500">
+                      <div 
+                        className="text-xs text-yellow-400 font-mono break-all bg-gray-800 p-2 border border-yellow-500 select-all cursor-pointer"
+                        data-copy-text="Public Link"
+                      >
                         {createdSession.publicLink}
                       </div>
                     </div>

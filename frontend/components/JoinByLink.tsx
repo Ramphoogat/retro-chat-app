@@ -144,12 +144,16 @@ export function JoinByLink({ linkId, onConnect }: JoinByLinkProps) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-green-400 text-sm">SESSION ID:</span>
-                <span className="text-cyan-400 font-mono">{sessionData.sessionId}</span>
+                <span className="text-cyan-400 font-mono select-all cursor-pointer">
+                  {sessionData.sessionId}
+                </span>
               </div>
               
               <div className="flex items-center justify-between">
                 <span className="text-green-400 text-sm">HOST:</span>
-                <span className="text-yellow-400 font-mono">{sessionData.hostName}</span>
+                <span className="text-yellow-400 font-mono select-all cursor-pointer">
+                  {sessionData.hostName}
+                </span>
               </div>
             </div>
           </div>
