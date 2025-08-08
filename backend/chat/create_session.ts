@@ -9,6 +9,7 @@ export interface CreateSessionRequest {
 export interface CreateSessionResponse {
   sessionId: string;
   hostName: string;
+  publicLink: string;
 }
 
 // Creates a new chat session with a unique ID and password.
@@ -24,15 +25,20 @@ export const createSession = api<CreateSessionRequest, CreateSessionResponse>(
     }
 
     const sessionId = crypto.randomUUID().substring(0, 8).toUpperCase();
+    const publicLinkId = crypto.randomUUID();
 
     await chatDB.exec`
-      INSERT INTO chat_sessions (id, host_name, password)
-      VALUES (${sessionId}, ${req.hostName}, ${req.password})
+      INSERT INTO chat_sessions (id, host_name, password, public_link_id)
+      VALUES (${sessionId}, ${req.hostName}, ${req.password}, ${publicLinkId})
     `;
+
+    // Generate the public link URL
+    const publicLink = `${process.env.NODE_ENV === 'production' ? 'https' : 'http'}://${req.headers?.host || 'localhost:3000'}/join/${publicLinkId}`;
 
     return {
       sessionId,
       hostName: req.hostName,
+      publicLink,
     };
   }
 );

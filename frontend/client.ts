@@ -83,6 +83,7 @@ export interface ClientOptions {
  * Import the endpoint handlers to derive the types for the client.
  */
 import { createSession as api_chat_create_session_createSession } from "~backend/chat/create_session";
+import { getSessionByLink as api_chat_get_session_by_link_getSessionByLink } from "~backend/chat/get_session_by_link";
 import { joinSession as api_chat_join_session_joinSession } from "~backend/chat/join_session";
 import { chatStream as api_chat_stream_chatStream } from "~backend/chat/stream";
 
@@ -95,6 +96,7 @@ export namespace chat {
             this.baseClient = baseClient
             this.chatStream = this.chatStream.bind(this)
             this.createSession = this.createSession.bind(this)
+            this.getSessionByLink = this.getSessionByLink.bind(this)
             this.joinSession = this.joinSession.bind(this)
         }
 
@@ -118,6 +120,15 @@ export namespace chat {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/chat/sessions`, {method: "POST", body: JSON.stringify(params)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_chat_create_session_createSession>
+        }
+
+        /**
+         * Gets session information by public link ID.
+         */
+        public async getSessionByLink(params: { linkId: string }): Promise<ResponseType<typeof api_chat_get_session_by_link_getSessionByLink>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/chat/sessions/link/${encodeURIComponent(params.linkId)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_chat_get_session_by_link_getSessionByLink>
         }
 
         /**

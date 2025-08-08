@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, ExternalLink } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import backend from "~backend/client";
 
@@ -43,6 +43,7 @@ export function SessionSetup({ onConnect }: SessionSetupProps) {
   const [createdSession, setCreatedSession] = useState<{
     sessionId: string;
     hostName: string;
+    publicLink: string;
   } | null>(null);
 
   // Join form state
@@ -67,6 +68,12 @@ export function SessionSetup({ onConnect }: SessionSetupProps) {
         description: "Failed to copy to clipboard",
         variant: "destructive",
       });
+    }
+  };
+
+  const openPublicLink = () => {
+    if (createdSession?.publicLink) {
+      window.open(createdSession.publicLink, '_blank');
     }
   };
 
@@ -270,10 +277,37 @@ export function SessionSetup({ onConnect }: SessionSetupProps) {
                         </Button>
                       </div>
                     </div>
+
+                    <div className="pt-2 border-t border-green-500">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-yellow-400 text-sm font-bold">PUBLIC LINK:</span>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyToClipboard(createdSession.publicLink, "Public Link")}
+                            className="h-6 w-6 p-0 text-yellow-400 hover:text-yellow-300"
+                          >
+                            {copiedField === "Public Link" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={openPublicLink}
+                            className="h-6 w-6 p-0 text-yellow-400 hover:text-yellow-300"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-xs text-yellow-400 font-mono break-all bg-gray-800 p-2 border border-yellow-500">
+                        {createdSession.publicLink}
+                      </div>
+                    </div>
                   </div>
                   
                   <p className="text-yellow-400 text-xs">
-                    Share these credentials with others to join your session
+                    Share the public link for instant access, or share the session ID and password for manual entry
                   </p>
                 </div>
 
